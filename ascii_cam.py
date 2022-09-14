@@ -1,98 +1,22 @@
-"""
-@file filter2D.py
-@brief Sample code that shows how to implement your own linear filters by using filter2D function
-"""
 from math import ceil
-import sys
 import cv2
 import numpy as np
 import random
 
-
-def draw_text(
-    img,
-    *,
-    text,
-    uv_top_left,
-    color=(255, 255, 255),
-    fontScale=1,
-    thickness=1,
-    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-    outline_color=(255, 0, 0),
-    line_spacing=1.5,
-):
-    """
-    Draws multiline with an outline.
-    """
-    assert isinstance(text, str)
-
-    uv_top_left = np.array(uv_top_left, dtype=float)
-    assert uv_top_left.shape == (2,)
-
-    for line in text.splitlines():
-        (w, h), _ = cv2.getTextSize(
-            text=line,
-            fontFace=fontFace,
-            fontScale=fontScale,
-            thickness=thickness,
-        )
-        uv_bottom_left_i = uv_top_left + [0, h]
-        org = tuple(uv_bottom_left_i.astype(int))
-
-        if outline_color is not None:
-            cv2.putText(
-                img,
-                text=line,
-                org=org,
-                fontFace=fontFace,
-                fontScale=fontScale,
-                color=outline_color,
-                thickness=thickness * 3,
-                lineType=cv2.LINE_AA,
-            )
-        cv2.putText(
-            img,
-            text=line,
-            org=org,
-            fontFace=fontFace,
-            fontScale=fontScale,
-            color=color,
-            thickness=thickness,
-            lineType=cv2.LINE_AA,
-        )
-
-        uv_top_left += [0, h * line_spacing]
-
-
-def show_webcam(mirror=False):
-    cap = cv2.VideoCapture('/home/micha/Downloads/Japanoschlampen.mp4')
-
-    if (cap.isOpened() == False):
-        print("Error opening video stream or file")
-        # Read until video is completed
-    while(cap.isOpened()):
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-        if not ret:
-            break
-            # Display the resulting frame
-
-        to_ascii(frame)
-        cv2.imshow('Frame', frame)
-
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
+import platform
+import os
+import sys
+import time
+import argparse
+import pathlib
+import warnings
 
 def rand_string():
     density = ''
     i = 0
     while i < 11:
         i += 1
-        random_char_ord = random.randrange(40, 10000)
+        random_char_ord = random.randrange(40, 1000)
         try:
             rand_char = chr(random_char_ord)
             density += rand_char
@@ -102,137 +26,216 @@ def rand_string():
 
 
 def generate_empty_image():
-
     return np.zeros(shape=(1024, 2048, 3), dtype=np.int8)
 
-
-def main(argv):
-
-    # if argv[0] == 'webcam':
-    # elif argv[0] == #path to file to transform video or pic
-    random = False
-    if len(argv[0]) > 0:
-        if argv[0] == 'rand':
-            random = True
-            density = rand_string()
-        elif argv[0] == 'norm':
-            density = 'Ñ@#W$9876543210?!abc;:+=-,._ '[::-1]
-        elif argv[0] == 'b2s':
-            density = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`\'.  '
-        elif argv[0] == 's2b':
-            density = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`\'.  '[::-1]
-
-    video = 1
-    if len(argv[1]) > 0:
-        if argv[1] == 'droid':
-            video = 0
-        if argv[1] == 'webcam':
-            video = 1
-
-    cam = cv2.VideoCapture(video)
-    ret_val, image = cam.read()
-
-    width = image.shape[0]
-    height = image.shape[1]
-    print(height, width)
-
-    adjusted_h = height // 4
-    adjusted_w = width // 8
+def interpret(adjusted_h ,adjusted_w, density, gray, color=""):
 
     # the steps in which a pixel is evaluated as a char
-    # for each 'jump' in the intensity of a given pixel the char is diffrent
+    # for each 'jump' in the intensity of a given pixel the char is different
+
     jump = ceil(255 / len(density))
 
-    j = 0
-    while True:
+    my_interpretation = '' #Ascii Output
 
-        if random:
-            j += 1
-            if j % 100 == 0:
-                density = rand_string()
+    for x in range(0, adjusted_w):
+        for y in range(0, adjusted_h):
+            num = gray[x, y].astype(int)
+            ascii_representation = density[num // jump]
+            my_interpretation += color+ascii_representation
+        my_interpretation += color +'\n'
+    return my_interpretation
+    
 
-        ret_val, img = cam.read()
+def file_to_ascii(density, path_to_file, resolution=1, store=False, color=""):
 
-        # adjust size
-        new_image = cv2.resize(img, (adjusted_h, adjusted_w))
-
-        # single Channel
-        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
-
-        my_interpretation = ''
-        for x in range(0, adjusted_w):
-            for y in range(0, adjusted_h):
-                num = gray[x, y].astype(int)
-                ascii_representation = density[num // jump]
-                my_interpretation += ascii_representation
-            my_interpretation += '\n'
-
-    print(my_interpretation)
-
-def to_ascii(appearance=1, source='webcam'):
-
-    if appearance == 0:
-        density = rand_string()
-    elif appearance == 1:
-        density = '$987654321?abc+-_ '[::-1] # 'Ñ@#W$9876543210?!abc;:+=-,._ '[::-1]
-    elif appearance == 2:
-        density = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`\'.  '
-    elif appearance == 3:
-        density = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`\'.  '[::-1]
+    try:
+        cap = cv2.VideoCapture(path_to_file)
+    except:
+        warnings.warn("Error opening the File. Please check whether the Path is correct")
 
     
-    if source == 'droidcam':
-        video = 0
-    elif source == 'webcam':
-        video = 1
+    pause = input("Press \"Ctrl\" + \"C\" to exit to exit a Video. Press any key to continue")
 
-    cam = cv2.VideoCapture(video)
-    ret_val, image = cam.read()
+    if (cap.isOpened() == False):
+        print("Error opening video stream or file")
+        # Read until video is completed
 
-    width = image.shape[0]
-    height = image.shape[1]
-    print(height, width)
+    my_interpretation=None
+    while(cap.isOpened()):
+        
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        if not ret:
+            break
+            # Display the resulting frame
 
-    adjusted_h = height // 4
-    adjusted_w = width // 8
 
-    # the steps in which a pixel is evaluated as a char
-    # for each 'jump' in the intensity of a given pixel the char is diffrent
-    jump = ceil(255 / len(density))
+        width = frame.shape[0]
+        height = frame.shape[1]
 
-    j = 0
-    while True:
-
-        if appearance == 0:
-            j += 1
-            if j % 100 == 0:
-                density = rand_string()
-
-        ret_val, img = cam.read()
+        adjusted_h = height // (4 + (resolution-1))
+        adjusted_w = width // (8 + (resolution*2-2))
+                    
 
         # adjust size
-        new_image = cv2.resize(img, (adjusted_h, adjusted_w))
-
+        new_image = cv2.resize(frame, (adjusted_h, adjusted_w))
         # single Channel
         gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
 
-        my_interpretation = ''
-        for x in range(0, adjusted_w):
-            for y in range(0, adjusted_h):
-                num = gray[x, y].astype(int)
-                ascii_representation = density[num // jump]
-                my_interpretation += ascii_representation
-            my_interpretation += '\n'
+
+        if my_interpretation!=None:
+            cv2.imshow('Frame',frame)
+
+
+        my_interpretation=interpret(adjusted_h, adjusted_w, density ,gray, color)
+
+        if platform.system() == 'Windows': 
+            os.system("cls")
+        else:
+            os.system("clear")
 
         print(my_interpretation)
+        time.sleep(0.01) #this is sadly needed to reduce flickering
 
 
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+def feed_to_ascii(density, source=-1, resolution=1, color=""):
+    
+   
+    cam = cv2.VideoCapture(source)
+    ret_val, img = cam.read()
+
+    width = img.shape[0]
+    height = img.shape[1]
+
+    adjusted_h = height // (1 + (resolution))
+    adjusted_w = width // (1 + (resolution*2))
+
+    print(density)
+
+    while True:
+
+        ret_val, img = cam.read()
+        
+
+        # adjust size
+        new_image = cv2.resize(img, (adjusted_h, adjusted_w))
+        # single Channel
+        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
+
+        my_interpretation=interpret(adjusted_h, adjusted_w, density, gray, color)
+
+        if platform.system() == 'Windows': 
+            os.system("cls")
+        else:
+            os.system("clear")
+        
+        print(my_interpretation)
+        time.sleep(0.01) #this is sadly needed to reduce flickering
+
+
+
+
+def main():
+
+    
+    col_dict={
+    'black':'\033[0;30m',
+    'red':'\033[0;31m',
+    'green':'\033[0;32m',
+    'orange':'\033[0;33m',
+    'blue':'\033[0;34m',
+    'purple':'\033[0;35m',
+    'cyan':'\033[0;36m',
+    'light_gray':'\033[0;37m',
+    'dark_grey':'\033[1;30m',
+    'light_red':'\033[1;31m',
+    'light_green':'\033[1;32m',
+    'yellow':'\033[1;33m',
+    'light_blue':'\033[1;34m',
+    'light_purple':'\033[1;35m',
+    'light_cyan':'\033[1;36m',
+    'white':'\033[1;37m',
+    }
+
+    parser = argparse.ArgumentParser(description="Ascii Cam, example usage: ")
+    group = parser.add_mutually_exclusive_group()
+    ascii_str_group = parser.add_mutually_exclusive_group()
+    
+    group.add_argument("-c","--cam", action="store_true", dest="cam",
+                        help="VideoCapture Device -1"
+    )
+    group.add_argument("-f","--file", action="store", dest="file_path",
+                        type=str,
+                        help="Path to a Picture or Video"
+    )
+
+    parser.add_argument("-r", "--resolution", default="4", action="store", dest="res",
+                        type=int, required=False,
+                        help="Output resolution, starting at 0 (BIG) default %(default)s (inverse linear). Can be higher depending on your input"
+    )
+
+    parser.add_argument("-o", "--output", action="store", dest="store",
+                        type=str, required=False,
+                        help="Name of Out File, currently supported for Picture Mode"
+    )
+    
+    parser.add_argument("-col", "--colour", "--color", choices=[key for key in col_dict], action="store", dest="color",
+                        type=str, required=False,
+                        help="Color of Ascii chars, for bash console"
+    )
+    parser.add_argument("-a", "--appearance", action="store", dest="appearance",
+                        type=str, required=False,
+                        help="String of Ascii Characters to use in conversion"
+    )
+
+    ascii_str_group.add_argument("-R", "--random", action="store", dest="random",
+                    type=str, required=False,
+                    help="Cycle through diffrent Ascii representation. Output may seem broken at times, because random chars aren't of equal width"
+    )
+    
+    ascii_str_group.add_argument("-s", "--source", default=-1, action="store", dest="source",
+                    type=int, required=False,
+                    help="Provide index of Video Capture Device (e.g. default %(default)s for webcam)"
+    )
+    
+
+    
+    args = parser.parse_args()
+
+
+    if args.color != None:
+        color=col_dict[str(args.color)]
+    else:
+        color=""
+
+    if args.random != None:
+        density = rand_string()
+    
+    if args.appearance != None:
+        density = args.appearance
+    else:
+        density = 'Ñ@#W$9876543210?!abc;:+=-,._ '[::-1]
+    
+
+
+    if args.cam:
+        feed_to_ascii(density=density, source=args.source, resolution=args.res, color=color)
+    elif args.file_path:
+        file_to_ascii(density=density, path_to_file=args.file_path, resolution=args.res, store=args.store, color=color)
+    
+    ##TODO
+    # resolution less convoluted
+    # SOUND for video
+    ## Optional:
+    ## Store Video as Ascii?
 
 if __name__ == "__main__":
-    # show_webcam()
-    to_ascii(appearance=1, source='webcam')
-    #appearance 
-    # 0 = rand
-    # 1 = norm
-    # 2 = advanced
-    # 3 = advanced backwards
+    main()
+    
