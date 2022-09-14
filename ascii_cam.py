@@ -190,7 +190,7 @@ def main():
                         type=str, required=False,
                         help="Color of Ascii chars, for bash console"
     )
-    parser.add_argument("-a", "--appearance", action="store", dest="appearance",
+    parser.add_argument("-a", "--appearance", default=' _.,-=+:;cba!?0123456789$W#@Ñ', action="store", dest="density",
                         type=str, required=False,
                         help="String of Ascii Characters to use in conversion"
     )
@@ -218,17 +218,12 @@ def main():
     if args.random != None:
         density = rand_string()
     
-    if args.appearance != None:
-        density = args.appearance
-    else:
-        density = 'Ñ@#W$9876543210?!abc;:+=-,._ '[::-1]
-    
 
 
     if args.cam:
-        feed_to_ascii(density=density, source=args.source, resolution=args.res, color=color)
+        feed_to_ascii(density=args.density, source=args.source, resolution=args.res, color=color)
     elif args.file_path:
-        file_to_ascii(density=density, path_to_file=args.file_path, resolution=args.res, store=args.store, color=color)
+        file_to_ascii(density=args.density, path_to_file=args.file_path, resolution=args.res, store=args.store, color=color)
     
     ##TODO
     # resolution less convoluted
