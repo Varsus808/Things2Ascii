@@ -1,4 +1,4 @@
-# ascii_cam
+# 5 Ascii 3 Me
 
 A CLI Tool to turn Videofeed, Picture- and Video Files into Ascii Characters, output to CLI.
 Optimized for Linux.
